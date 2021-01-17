@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<!-- This is based on DillingerLee's great template here:
+https://github.com/Team-Code/KA_Offline -->
+<html> 
+ <head>
+    <title>Pendulum Simulation</title> 
+</head>
+ <body>
+    <p align="center"> 
+	<!--This draws the Canvas on the webpage -->
+      <canvas id="mycanvas"></canvas> 
+    </p>
+ </body>
+ 
+ <!-- Run all the JavaScript stuff -->
+ <!-- Include the processing.js library -->
+ <!-- See https://khanacademy.zendesk.com/hc/en-us/articles/202260404-What-parts-of-ProcessingJS-does-Khan-Academy-support- for differences -->
+ <script src="https://cdn.jsdelivr.net/processing.js/1.4.8/processing.min.js"></script> 
+ 
+ <script>
+    var sketchProc = function(processingInstance) {
+     with (processingInstance) {
+        size(400, 400); 
+        frameRate(60);
+
+//Made by Shivum Banerjee, 17 Jan 2021
+var step = 0.1;
+var keys = [];
+
+var Pendulum = function(theta,thetaDot) {
+    this.g = -50;
+    this.r = 100;
+    this.friction = 0.1;
+    
+    this.posX = width/2;
+    this.posY = height/2;
+    
+    this.theta = theta;
+    this.thetaDot = thetaDot;
+    this.thetaDotDot = this.g/this.r*sin(this.theta);
+};
+
+Pendulum.prototype.display = function() {
+    
+    if(this.theta < 0) {
+        fill(255,0,0);
+        arc(this.posX,this.posY,100,100,PI/2, PI/2 - this.theta);   
+    } else {
+        fill(0,255,0);
+        arc(this.posX,this.posY,100,100, PI/2 - this.theta,PI/2);
+    }
+    
+    fill(0);
+    noStroke();
+    rect(this.posX - 1, this.posY, 2, 50);
+    
+    noFill();
+    strokeWeight(4);
+    stroke(255,255,255);
+    ellipse(this.posX,this.posY,100,100);
+    
+    pushMatrix();
+    
+    translate(this.posX,this.posY);
+    rotate(-this.theta);
+
+    noStroke();
+    fill(0);
+    rect(-1,0,2,this.r);
+    
+    stroke(0);
+    strokeWeight(1);
+    fill(255 - this.r/10);
+    ellipse(0,this.r,50,50);
+
+    fill(0);
+    noStroke();
+    ellipse(0,0,10,10);
+
+    popMatrix();
+};
+
+Pendulum.prototype.update = function() {
+    if(this.theta > PI) {
+        this.theta -= floor(abs(this.theta)/PI)*2*PI;   
+    }
+    
+    if(this.theta < -PI) {
+        this.theta += floor(abs(this.theta)/PI)*2*PI;   
+    }
+    
+    this.theta += this.thetaDot*step;
+    this.thetaDot += this.thetaDotDot*step;
+    this.thetaDotDot = this.g/this.r*sin(this.theta) - this.thetaDot*this.friction;
+};
+
+var pend = new Pendulum(PI/2,2);
+
+mouseDragged = function() {
+    var dir = new PVector(mouseX - pend.posX, mouseY - pend.posY);
+    
+    pend.r = round(dir.mag()/10)*10;
+    
+    var ang = acos(abs(dir.y)/dir.mag());
+    
+    if(dir.y > 0) {
+        
+        if(dir.x > 0) {
+            ang = ang;   
+        } else if(dir.x === 0) {
+            ang = 0;
+        } else if(dir.x < 0) {
+            ang = -ang;
+        }
+        
+    } else if(dir.y === 0) {
+        
+        if(dir.x > 0) {
+            ang = PI/2;   
+        } else if(dir.x < 0) {
+            ang = -PI/2;   
+        }
+        
+    } else {
+        
+        if(dir.x > 0) {
+            ang = PI - ang;   
+        } else if(dir.x === 0) {
+            ang = PI;   
+        } else if(dir.x < 0) {
+            ang = -PI + ang;   
+        }
+        
+    }
+
+    pend.theta = ang;
+    pend.thetaDot = 0;
+    pend.thetaDotDot = 0;
+};
+
+keyPressed = function() {
+    keys[keyCode] = true;
+    if(keyCode === 32) {
+        pend.theta += random(-PI,PI);
+        pend.thetaDot = random(-PI,PI);
+    }
+};
+keyReleased = function() {
+    keys[keyCode] = false;  
+};
+
+draw = function() {
+    background(0,255,255,100);
+
+    pend.update();
+    pend.display();
+    
+    fill(0);
+    textFont(createFont("cursive"),17);
+    text("Gravity: " + round(-pend.g*100)/100 + " pixels per frame squared",10,30);
+    text("Length: " + round(pend.r*100)/100 + " pixels",10,60);
+    text("Speed: " + round(pend.thetaDot*100)/100 + " radians per frame",10,90);
+    text("Acceleration: " + round(pend.thetaDotDot*100)/100 + " radians per frame squared",10,120);
+    text("Frictional Constant: " + round(pend.friction*100)/100,10,340);
+    text("Angle: " + round(pend.theta*100)/100 + " radians",10,370);
+    
+    textSize(9);
+    text("Angles are measured from the negative y-axis, considering counterclockwise positive",13,390);
+    
+    if(keys[RIGHT]) {
+        pend.thetaDot += 0.1;
+    }
+    if(keys[LEFT]) {
+        pend.thetaDot -= 0.1;
+    }
+    if(keys[UP]) {
+        pend.g += 1;   
+    }
+    if(keys[DOWN]) {
+        pend.g -= 1;   
+    }
+    if(keys[80]) {
+        pend.friction += 0.01;   
+    }
+    if(keys[79]) {
+        pend.friction -= 0.01;   
+    }
+};
+
+
+
+    }};
+
+    // Get the canvas that Processing-js will use
+    var canvas = document.getElementById("mycanvas"); 
+    // Pass the function sketchProc (defined in myCode.js) to Processing's constructor.
+    var processingInstance = new Processing(canvas, sketchProc); 
+ </script>
+
+</html>
